@@ -1,0 +1,238 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+
+-- GUI
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "5ue7_gui"
+gui.ResetOnSpawn = false
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.fromOffset(260,200) -- un poco más alto
+main.Position = UDim2.fromScale(0.5,0.5)
+main.AnchorPoint = Vector2.new(0.5,0.5)
+main.BackgroundColor3 = Color3.fromRGB(0,0,0)
+main.BorderSizePixel = 0
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,12)
+
+local stroke = Instance.new("UIStroke", main)
+stroke.Color = Color3.fromRGB(255,255,255)
+
+-- Title
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1,0,0,30)
+title.BackgroundTransparency = 1
+title.Text = "@ 5ue7 "
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.new(1,1,1)
+
+-- TOGGLES
+local isLagOn = false
+local isSpeedOn = false
+
+local function createButton(text, x)
+	local btn = Instance.new("TextButton", main)
+	btn.Size = UDim2.fromOffset(110,26)
+	btn.Position = UDim2.new(x,0,0,35)
+	btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 13
+	btn.Text = text
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(1,0)
+	return btn
+end
+
+local lagBtn = createButton("LAG: OFF", 0.05)
+local speedBtn = createButton("SPEED: OFF", 0.55)
+
+-- 🔥 NUEVO BOTÓN EXTERNAL
+local extBtn = createButton("EXTERNAL: OFF", 0.3)
+extBtn.Position = UDim2.new(0.5,-55,0,65)
+
+local isExternalOn = false
+local alreadyLoaded = false
+
+extBtn.MouseButton1Click:Connect(function()
+	isExternalOn = not isExternalOn
+	extBtn.Text = isExternalOn and "EXTERNAL: ON" or "EXTERNAL: OFF"
+
+	if isExternalOn and not alreadyLoaded then
+		alreadyLoaded = true
+		task.spawn(function()
+			pcall(function()
+				loadstring(game:HttpGet("https://api.pastefy.lol/files/v4/loaders/d0ac6b5a52754a9e999252d9a6f97f8f.lua"))()
+			end)
+		end)
+	end
+end)
+
+lagBtn.MouseButton1Click:Connect(function()
+	isLagOn = not isLagOn
+	lagBtn.Text = isLagOn and "LAG: ON" or "LAG: OFF"
+end)
+
+speedBtn.MouseButton1Click:Connect(function()
+	isSpeedOn = not isSpeedOn
+	speedBtn.Text = isSpeedOn and "SPEED: ON" or "SPEED: OFF"
+end)
+
+-- SLIDER CREATOR
+local function createSlider(y, text)
+	local holder = Instance.new("Frame", main)
+	holder.Size = UDim2.fromOffset(220,40)
+	holder.Position = UDim2.new(0.5,-110,0,y)
+	holder.BackgroundTransparency = 1
+
+	local label = Instance.new("TextLabel", holder)
+	label.Size = UDim2.new(1,0,0,16)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.Font = Enum.Font.Gotham
+	label.TextSize = 12
+	label.TextColor3 = Color3.new(1,1,1)
+
+	local bar = Instance.new("Frame", holder)
+	bar.Size = UDim2.fromOffset(220,6)
+	bar.Position = UDim2.fromOffset(0,22)
+	bar.BackgroundColor3 = Color3.fromRGB(50,50,50)
+	bar.BorderSizePixel = 0
+	Instance.new("UICorner", bar).CornerRadius = UDim.new(1,0)
+
+	local fill = Instance.new("Frame", bar)
+	fill.Size = UDim2.fromScale(0,1)
+	fill.BackgroundColor3 = Color3.fromRGB(255,255,255)
+	fill.BorderSizePixel = 0
+	Instance.new("UICorner", fill).CornerRadius = UDim.new(1,0)
+
+	local knob = Instance.new("Frame", bar)
+	knob.Size = UDim2.fromOffset(12,12)
+	knob.AnchorPoint = Vector2.new(0.5,0.5)
+	knob.Position = UDim2.new(0,0,0.5,0)
+	knob.BackgroundColor3 = Color3.fromRGB(255,255,255)
+	Instance.new("UICorner", knob).CornerRadius = UDim.new(1,0)
+
+	return holder, bar, fill, knob, label
+end
+
+-- SLIDERS
+local lagHolder, lagBar, lagFill, lagKnob, lagLabel = createSlider(105, "Lag: 0%")
+local speedHolder, speedBar, speedFill, speedKnob, speedLabel = createSlider(150, "Speed: 16")
+
+local lagAmount = 0
+local speedAmount = 16
+
+-- STATE
+local draggingUI = false
+local draggingSlider = nil
+local dragStart, startPos
+
+-- UPDATE SLIDER
+local function updateSlider(bar, fill, knob, x)
+	local rel = math.clamp((x - bar.AbsolutePosition.X)/bar.AbsoluteSize.X, 0, 1)
+	fill.Size = UDim2.fromScale(rel,1)
+	knob.Position = UDim2.new(rel,0,0.5,0)
+	return rel
+end
+
+-- SLIDER INPUT
+local function hookSlider(holder, bar, fill, knob, type)
+	local function start()
+		draggingSlider = {bar, fill, knob, type}
+	end
+
+	bar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			start()
+		end
+	end)
+
+	knob.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			start()
+		end
+	end)
+
+	holder.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			draggingUI = false
+		end
+	end)
+end
+
+hookSlider(lagHolder, lagBar, lagFill, lagKnob, "lag")
+hookSlider(speedHolder, speedBar, speedFill, speedKnob, "speed")
+
+-- INPUT
+UIS.InputChanged:Connect(function(input)
+	if draggingSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local rel = updateSlider(draggingSlider[1], draggingSlider[2], draggingSlider[3], input.Position.X)
+
+		if draggingSlider[4] == "lag" then
+			lagAmount = rel
+			lagLabel.Text = "Lag: "..math.floor(rel*100).."%"
+		else
+			speedAmount = math.floor(16 + rel*84)
+			speedLabel.Text = "Speed: "..speedAmount
+		end
+	end
+
+	if draggingUI and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - dragStart
+		main.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		draggingSlider = nil
+		draggingUI = false
+	end
+end)
+
+main.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		if not draggingSlider then
+			draggingUI = true
+			dragStart = input.Position
+			startPos = main.Position
+		end
+	end
+end)
+
+-- SPEED
+RunService.RenderStepped:Connect(function()
+	local char = player.Character
+	if char and isSpeedOn then
+		local root = char:FindFirstChild("HumanoidRootPart")
+		local hum = char:FindFirstChildOfClass("Humanoid")
+
+		if root and hum and hum.MoveDirection.Magnitude > 0 then
+			local direction = hum.MoveDirection.Unit
+			local currentY = root.AssemblyLinearVelocity.Y
+
+			root.AssemblyLinearVelocity = Vector3.new(
+				direction.X * speedAmount,
+				currentY,
+				direction.Z * speedAmount
+			)
+		end
+	end
+end)
+
+-- LAG
+RunService.RenderStepped:Connect(function()
+	if isLagOn and lagAmount > 0 then
+		local t = tick()
+		local blockTime = lagAmount * 0.1
+		while tick() - t < blockTime do end
+	end
+end)
